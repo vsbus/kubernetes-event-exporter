@@ -1,7 +1,6 @@
 package sinks
 
 import "errors"
-import "fmt"
 
 // Receiver allows receiving
 type ReceiverConfig struct {
@@ -19,6 +18,7 @@ type ReceiverConfig struct {
 	Pubsub        *PubsubConfig        `yaml:"pubsub"`
 	Opscenter     *OpsCenterConfig     `yaml:"opscenter"`
 	Teams         *TeamsConfig         `yaml:"teams"`
+	BigQuery      *BigQueryConfig      `yaml:"bigquery"`
 }
 
 func (r *ReceiverConfig) Validate() error {
@@ -26,7 +26,6 @@ func (r *ReceiverConfig) Validate() error {
 }
 
 func (r *ReceiverConfig) GetSink() (Sink, error) {
-        fmt.Println("GetSink ", r);
 	if r.InMemory != nil {
 		// This reference is used for test purposes to count the events in the sink.
 		// It should not be used in production since it will only cause memory leak and (b)OOM
@@ -34,24 +33,19 @@ func (r *ReceiverConfig) GetSink() (Sink, error) {
 		r.InMemory.Ref = sink
 		return sink, nil
 	}
-        fmt.Println("debug1");
 
 	// Sorry for this code, but its Go
 	if r.Webhook != nil {
 		return NewWebhook(r.Webhook)
 	}
-        fmt.Println("debug1");
 
 	if r.File != nil {
 		return NewFileSink(r.File)
 	}
 
-        fmt.Println("debug1");
 	if r.Elasticsearch != nil {
-                fmt.Println("debug NewElasticsearch");
 		return NewElasticsearch(r.Elasticsearch)
 	}
-        fmt.Println("debug2");
 
 	if r.Kinesis != nil {
 		return NewKinesisSink(r.Kinesis)
@@ -85,9 +79,13 @@ func (r *ReceiverConfig) GetSink() (Sink, error) {
 		return NewOpsCenterSink(r.Opscenter)
 	}
 
-        if r.Teams != nil {
-                return NewTeamsSink(r.Teams)
-        }
+	if r.Teams != nil {
+		return NewTeamsSink(r.Teams)
+	}
+
+	if r.BigQuery != nil {
+		return NewBigQuerySink(r.BigQuery)
+	}
 
 	return nil, errors.New("unknown sink")
 }
